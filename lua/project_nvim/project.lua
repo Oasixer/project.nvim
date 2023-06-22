@@ -8,6 +8,39 @@ local M = {}
 -- Internal states
 M.attached_lsp = false
 M.last_project = nil
+M.manual_mode = config.options.manual_mode
+
+-- function M.toggle_manual_mode(manual_mode)
+--   if manual_mode ~= nil then
+--     config.manual_mode = manual_mode
+--   else
+--     config.manual_mode = not config.manual_mode
+--   end
+-- end
+-- M.manual_mode = config.options.manual_mode
+
+function M.toggle_manual_mode(manual_mode)
+  if manual_mode ~= nil then
+    M.manual_mode = manual_mode
+  else
+    M.manual_mode = not M.manual_mode
+  end
+  if M.manual_mode then
+    vim.notify("enabled ProjectRoot manual mode")
+  else
+    vim.notify("disabled ProjectRoot manual mode")
+  end
+end
+
+function M.insert_project_mode()
+  local mode_text = ""
+  if M.manual_mode then
+    mode_text = "Manual"
+  else
+    mode_text = "Auto"
+  end
+  vim.api.nvim_put({ mode_text }, "c", true, true)
+end
 
 function M.find_lsp_root()
   -- Get lsp client for current buffer
@@ -176,12 +209,12 @@ function M.set_pwd(dir, method)
 
     if vim.fn.getcwd() ~= dir then
       local scope_chdir = config.options.scope_chdir
-      if scope_chdir == 'global' then
+      if scope_chdir == "global" then
         vim.api.nvim_set_current_dir(dir)
-      elseif scope_chdir == 'tab' then
-        vim.cmd('tcd ' .. dir)
-      elseif scope_chdir == 'win' then
-        vim.cmd('lcd ' .. dir)
+      elseif scope_chdir == "tab" then
+        vim.cmd("tcd " .. dir)
+      elseif scope_chdir == "win" then
+        vim.cmd("lcd " .. dir)
       else
         return
       end
@@ -189,6 +222,8 @@ function M.set_pwd(dir, method)
       if config.options.silent_chdir == false then
         vim.notify("Set CWD to " .. dir .. " using " .. method)
       end
+    else
+      vim.notify("CWD already at " .. dir)
     end
     return true
   end
@@ -246,17 +281,22 @@ function M.on_buf_enter()
   end
 
   local root, method = M.get_project_root()
+  if M.manual_mode then
+    vim.notify("Left CWD on " .. vim.fn.getcwd() .. " [manual mode]")
+    return
+  end
+
   M.set_pwd(root, method)
 end
 
 function M.add_project_manually()
   local current_dir = vim.fn.expand("%:p:h", true)
-  M.set_pwd(current_dir, 'manual')
+  M.set_pwd(current_dir, "manual")
 end
 
 function M.init()
   local autocmds = {}
-  if not config.options.manual_mode then
+  if not M.manual_mode then
     autocmds[#autocmds + 1] = 'autocmd VimEnter,BufEnter * ++nested lua require("project_nvim.project").on_buf_enter()'
 
     if vim.tbl_contains(config.options.detection_methods, "lsp") then
@@ -266,6 +306,10 @@ function M.init()
 
   vim.cmd([[
     command! ProjectRoot lua require("project_nvim.project").on_buf_enter()
+    command! SetManualProjectMode lua require("project_nvim.project").toggle_manual_mode(true)
+    command! SetAutoProjectMode lua require("project_nvim.project").toggle_manual_mode(false)
+    command! ToggleManualProjectMode lua require("project_nvim.project").toggle_manual_mode()
+    command! InsertProjectMode lua require("project_nvim.project").insert_project_mode()
     command! AddProject lua require("project_nvim.project").add_project_manually()
   ]])
 
