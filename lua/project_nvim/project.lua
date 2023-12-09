@@ -32,6 +32,10 @@ function M.toggle_manual_mode(manual_mode)
   end
 end
 
+function M.get_manual_mode()
+  return M.manual_mode
+end
+
 function M.insert_project_mode()
   local mode_text = ""
   if M.manual_mode then
@@ -223,7 +227,7 @@ function M.set_pwd(dir, method)
         vim.notify("Set CWD to " .. dir .. " using " .. method)
       end
     else
-      vim.notify("CWD already at " .. dir)
+      -- vim.notify("CWD already at " .. dir)
     end
     return true
   end
@@ -282,11 +286,12 @@ function M.on_buf_enter()
 
   local root, method = M.get_project_root()
   if M.manual_mode then
-    vim.notify("Left CWD on " .. vim.fn.getcwd() .. " [manual mode]")
+    -- vim.notify("Left CWD on " .. vim.fn.getcwd() .. " [manual mode]")
     return
   end
 
   M.set_pwd(root, method)
+  -- vim.notify("Now CWD is " .. vim.fn.getcwd() .. " [manual mode]")
 end
 
 function M.add_project_manually()
